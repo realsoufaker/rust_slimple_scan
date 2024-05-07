@@ -1,5 +1,6 @@
 use reqwest::{blocking::Client, redirect};
 use std::time::Duration;
+use rayon::prelude::*;
 
 use crate::error::Error;
 use crate::model::Subdomain;
@@ -16,19 +17,27 @@ pub fn scan(target: &str) -> Result<(), Error> {
         .timeout(http_timeout)
         .build()?;
 
-    let result: Vec<Subdomain> = subdomains::enumerate(&http_client, target)?
-        .into_iter()
-        .map(port::scan_ports)
-        .collect();
+    // 定义多进程
+    let pool = rayon::ThreadPoolBuilder::new()
+        .num_threads(256)
+        .build()
+        .unwrap();
 
+    pool.install(|| {
+        let result: Vec<Subdomain> = subdomains::enumerate(&http_client, target)
+            .unwrap()
+            .into_par_iter()
+            .map(port::scan_ports)
+            .collect();
 
-    for subdomain in result {
-        println!("{}:", &subdomain.domain);
-        for port in &subdomain.open_ports {
-            println!("    {}", port.port);
+        for subdomain in result {
+            println!("{}:", &subdomain.domain);
+            for port in &subdomain.open_ports {
+                println!("    {}", port.port);
+            }
+            println!();
         }
-        println!();
-    }
+    });
         
     Ok(())
 }

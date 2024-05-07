@@ -1,7 +1,7 @@
 use std::env;
 use anyhow::Result;
 use clap::{Arg, Command};
-
+// use rayon::prelude::*;
 
 mod cli;
 mod error;
