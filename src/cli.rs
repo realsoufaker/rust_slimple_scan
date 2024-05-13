@@ -1,4 +1,8 @@
 use reqwest::{blocking::Client, redirect};
+use futures::stream;
+use futures::StreamExt;
+
+
 use std::time::Duration;
 use rayon::prelude::*;
 
@@ -11,6 +15,12 @@ use crate::port;
 
 pub fn scan(target: &str) -> Result<(), Error> {
     log::info!("Scanning: {}", target);
+
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .expect("Building toiko's runtime");
+    
     let http_timeout = Duration::from_secs(5);
     let http_client = Client::builder()
         .redirect(redirect::Policy::limited(4))
